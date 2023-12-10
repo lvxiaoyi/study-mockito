@@ -1,23 +1,11 @@
 # study-mockito
-视频地址：https://www.bilibili.com/video/BV1jJ411A7Sv/?spm_id_from=333.337.search-card.all.click&vd_source=ff64eaedd3a12904e96d15c6c99dd21d
+## 建议
 
-## 细节
-
-mock默认底层会使用一种default的方式，如果使用mock的话不会报错，但是会返回一个默认值，根据不同的返回类型返回不同的默认值ReturnEmptyValue.returnValueFor
+**如果对mockito完全没有概念可以可以先看视频P1-P6，这部分看完整体已经知道mockito在做什么，怎么使用，接下来可以跳过视频直接查看文档**
 
 
 
-## mock方式
-
-**项目中常用的还是使用@mock和@InjectMocks**
-
-可以使用MockitoAnnotations.initMocks(this)/@Rule(junit提供的方法)
-
-
-
-
-
-## 常用注解
+## 项目中常用
 
 ### @Mock
 
@@ -138,31 +126,235 @@ public void saveTest()
 
 
 
-## API
+## 常用方法
 
-### doNothing
+| **方法名**                                                   | **描述**                                  |
+| ------------------------------------------------------------ | ----------------------------------------- |
+| Mockito.mock(classToMock)                                    | 模拟对象                                  |
+| Mockito.mock(classToMock, defaultAnswer)                     | 使用默认Answer模拟对象                    |
+| Mockito.verify(mock)                                         | 验证行为是否发生                          |
+| Mockito.when(methodCall).thenReturn(value)                   | 设置方法预期返回值                        |
+| Mockito.when(methodCall).thenReturn(value1).thenReturn(value2) //等价于`Mockito.when(methodCall).thenReturn(value1, value2)` | 触发时第一次返回value1，第n次都返回value2 |
+| Mockito.when(methodCall).thenAnswer(answer))                 | 预期回调接口生成期望值                    |
+| Mockito.doThrow(toBeThrown).when(mock).[method]              | 模拟抛出异常。                            |
+| Mockito.doReturn(toBeReturned).when(mock).[method]           | 设置方法预期返回值（直接执行不判断）      |
+| Mockito.doAnswer(answer).when(methodCall).[method]           | 预期回调接口生成期望值（直接执行不判断）  |
+| Mockito.doNothing().when(mock).[method]                      | 不做任何返回                              |
+| Mockito.doCallRealMethod().when(mock).[method]<br /> //等价于`Mockito.when(mock.[method] ).thenCallRealMethod()`; | 调用真实的方法                            |
+| Mockito.spy(Object)                                          | 用spy监控真实对象,设置真实对象行为        |
+| Mockito.inOrder(Object… mocks)                               | 创建顺序验证器                            |
+| Mockito.reset(mock)                                          | 重置mock                                  |
+
+## 参数匹配器列表
+
+`org.mockito.ArgumentMatchers`中定义了所有的内置匹配器
+
+| 函数名                              | 说明                                                         |
+| ----------------------------------- | ------------------------------------------------------------ |
+| any()                               | 任意类型                                                     |
+| any(Class<T> type)                  | 任意指定的Class类型，除了null                                |
+| isA(Class<T> type)                  | 指定类型的实现对象                                           |
+| anyInt()                            | 任何int或者non-null Integer                                  |
+| anyXxx()                            | 其他类似还有（Boolean、Byte、Char、Int、Long、Float、Double、Short、String、List、Set、Map、Collection、Iterable）同样必须非空 |
+| eq(value)                           | 等于给定的值                                                 |
+| same(value)                         | 和给定的值是同一个对象                                       |
+| isNull()                            | null值                                                       |
+| notNull()                           | 非null                                                       |
+| nullable(Class<T> clazz)            | null 或者给定的类型                                          |
+| contains(String substring)          | 包含指定的字符串                                             |
+| matches(String regex)               | 匹配正则表达式                                               |
+| endsWith(String suffix)             | 以xx结尾                                                     |
+| startsWith(String prefix)           | 以xx开头                                                     |
+| argThat(ArgumentMatcher<T> matcher) | 自定义匹配器                                                 |
+
+## 验证精确调用次数
+
+verify()默认验证方法被调用1次，可以传入times()方法，匹配精确的次数，或者其他类似方法
+
+- times(n)，匹配n次
+- never()，没被调用，等于times(0)
+- atMostOnce()，最多1次
+- atLeastOnce()，最少1次
+- atLeast(n)，最少n次
+- atMost(n)，最多n次
+
+## 验证执行顺序
+
+可以通过`Mockito.inOrder(Object... mocks)`创建顺序验证器
 
 ```java
-doNothing().when(list).clear();
+// A. 单个mock对象调用顺序验证
+List singleMock = mock(List.class);//using a single mock
+singleMock.add("was added first");
+singleMock.add("was added second");//创建顺序验证器，使用单个mock
+InOrder inOrder = inOrder(singleMock);//以下代码验证先调用 "was added first", 然后调用 "was added second"
+inOrder.verify(singleMock).add("was added first");
+inOrder.verify(singleMock).add("was added second");// B. 组合 mocks 调用顺序验证
+List firstMock = mock(List.class);
+List secondMock = mock(List.class);//using mocks
+firstMock.add("was called first");
+secondMock.add("was called second");//创建顺序验证器，使用多个mock
+InOrder inOrder = inOrder(firstMock, secondMock);//以下代码验证 firstMock 在 secondMock 之前调用
+inOrder.verify(firstMock).add("was called first");
+inOrder.verify(secondMock).add("was called second");
 ```
 
-当执行到list.clear方法的时候什么都做
 
-### doThrow
+
+## 监控真实对象
+
+可以为真实对象创建一个监控(spy)对象。当你使用这个spy对象时真实的对象也会也调用，除非它的函数被stub了。
 
 ```java
-doThrow(RuntimeException.class).when(list).clear();
-try {
-     list.clear();
-} catch (Exception e) {
-     assertThat(e,instanceOf(RuntimeException.class));
-}
+List list = new LinkedList();
+List spy = spy(list);//optionally, you can stub out some methods:
+when(spy.size()).thenReturn(100);//using the spy calls *real* methods
+spy.add("one");
+spy.add("two");//prints "one" - the first element of a list
+System.out.println(spy.get(0));//size() method was stubbed - 100 is printed
+System.out.println(spy.size());//optionally, you can verify
+verify(spy).add("one");
+verify(spy).add("two");
 ```
 
-### verify
+## 自定义验证失败信息
 
 ```java
-verify(list,times(1)).clear();
+    @Test
+    public void test() {
+        ArrayList arrayList = mock(ArrayList.class);
+        arrayList.add("one");
+        arrayList.add("two");
+        verify(arrayList, description("size()没有调用")).size();
+        // org.mockito.exceptions.base.MockitoAssertionError: size()没有调用
+        verify(arrayList, timeout(200).times(3).description("验证失败")).add(anyString());
+        // org.mockito.exceptions.base.MockitoAssertionError: 验证失败
+    }
 ```
 
-验证没有返回值的方法执行的次数
+
+
+## 参数捕捉器
+
+`ArgumentCaptor argument = ArgumentCaptor.forClass(Class clazz)` 创建指定类型的参数捕获器
+
+`argument.capture()` 捕获方法参数
+
+`argument.getValue()` 获取方法参数值，如果方法进行了多次调用，它将返回最后一个参数值
+
+`argument.getAllValues()` 方法进行多次调用后，返回多个参数值
+
+```java
+    @Test
+    @DisplayName("参数捕捉器")
+    public void argumentCaptor() {
+        List mockList1 = mock(List.class);
+        List mockList2 = mock(List.class);
+        mockList1.add("John");
+        mockList2.add("Brian");
+        mockList2.add("Jim");// 获取方法参数
+        ArgumentCaptor argument = ArgumentCaptor.forClass(String.class);
+        verify(mockList1).add(argument.capture());
+        System.out.println(argument.getValue());    //John
+        // 多次调用获取最后一次
+        ArgumentCaptor argument1 = ArgumentCaptor.forClass(String.class);
+        verify(mockList2, times(2)).add(argument1.capture());
+        System.out.println(argument1.getValue());    //Jim
+        // 获取所有调用参数
+        System.out.println(argument1.getAllValues());    //[Brian, Jim]
+    }
+```
+
+## doAnswer回调函数
+
+```java
+    @Test
+    @DisplayName("设置方法回调函数")
+    /**
+     * 当mockedList调用get方法的时候，直接更改内部的函数，doAnswer和thAnswer两种方式都可以实现
+     */
+    
+    public void mockListAnswer() {
+        List mockedList = mock(List.class);
+        Mockito.when(mockedList.get(Mockito.anyInt())).thenAnswer(invocationOnMock -> {
+            System.out.println("哈哈哈，被我逮到了吧");
+            Object[] arguments = invocationOnMock.getArguments();
+            System.out.println("参数为:" + Arrays.toString(arguments));
+            Method method = invocationOnMock.getMethod();
+            System.out.println("方法名为:" + method.getName());
+            return "结果由我决定";
+        });
+        Mockito.doAnswer(invocationOnMock -> {
+            System.out.println("哈哈哈，被我逮到了吧");
+            Object[] arguments = invocationOnMock.getArguments();
+            System.out.println("参数为:" + Arrays.toString(arguments));
+            Method method = invocationOnMock.getMethod();
+            System.out.println("方法名为:" + method.getName());
+            return "结果由我决定";
+        }).when(mockedList).get(anyInt());
+        System.out.println(mockedList.get(0));
+    }
+
+```
+
+## 设置mock默认行为
+
+```java
+    @Test
+    @DisplayName("mock的默认行为")
+    public void mockDefault() {
+        // 创建mock对象、使用默认返回
+        final ArrayList mockList = mock(ArrayList.class);
+        System.out.println(mockList.get(0));    //null
+        // 这个实现首先尝试全局配置,如果没有全局配置就会使用默认的回答,它返回0,空集合,null,等等。
+        // 参考返回配置：ReturnsEmptyValues
+        mock(ArrayList.class, Answers.RETURNS_DEFAULTS);
+        
+        
+        // ReturnsSmartNulls首先尝试返回普通值(0,空集合,空字符串,等等)然后它试图返回SmartNull。
+        // 如果最终返回对象，那么会简单返回null。一般用在处理遗留代码。
+        // 参考返回配置：ReturnsMoreEmptyValues
+        mock(ArrayList.class, Answers.RETURNS_SMART_NULLS);
+        
+        
+        // 未stub的方法，会调用真实方法。
+        //    注1:存根部分模拟使用时(mock.getSomething ()) .thenReturn (fakeValue)语法将调用的方法。对于部分模拟推荐使用doReturn语法。
+        //    注2:如果模拟是序列化反序列化,那么这个Answer将无法理解泛型的元数据。
+        mock(ArrayList.class, Answers.CALLS_REAL_METHODS);
+        
+        // 深度stub，用于嵌套对象的mock。参考：https://www.cnblogs.com/Ming8006/p/6297333.html
+        mock(ArrayList.class, Answers.RETURNS_DEEP_STUBS);
+        
+        
+        // ReturnsMocks首先尝试返回普通值(0,空集合,空字符串,等等)然后它试图返回mock。
+        // 如果返回类型不能mocked(例如是final)然后返回null。
+        mock(ArrayList.class, Answers.RETURNS_MOCKS);
+        
+        
+        //  mock对象的方法调用后，可以返回自己（类似builder模式）
+        mock(ArrayList.class, Answers.RETURNS_SELF);
+        
+        // 自定义返回
+        final Answer<String> answer = invocation -> "test_answer";
+        final ArrayList mockList1 = mock(ArrayList.class, answer);
+        System.out.println(mockList1.get(0));   //test_answer
+    }
+```
+
+
+
+
+
+## 参考：
+
+视频地址：
+
+https://www.bilibili.com/video/BV1jJ411A7Sv/?spm_id_from=333.337.search-card.all.click&vd_source=ff64eaedd3a12904e96d15c6c99dd21d
+
+文档地址：
+
+* https://www.xjx100.cn/news/336930.html?action=onClick
+
+- https://site.mockito.org/
+- https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html
+- https://juejin.cn/post/7202666869965520952
